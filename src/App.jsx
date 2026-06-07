@@ -19,6 +19,10 @@ export default function App() {
   const [newCardText, setNewCardText] = useState('');
 
   useEffect(() => {
+    const minutesDisplay = Math.floor(secondsLeft / 60).toString().padStart(2, '0');
+    const secondsDisplay = (secondsLeft % 60).toString().padStart(2, '0');
+    document.title = `${minutesDisplay}:${secondsDisplay} - tomatoro`;
+
     let interval = null;
     if (isActive && secondsLeft > 0) {
       interval = setInterval(() => {
