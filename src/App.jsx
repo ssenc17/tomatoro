@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import './App.css';
 
 export default function App() {
+  const MAX_MINUTES = 180;
+  const MIN_MINUTES = 1;
+
   const [secondsLeft, setSecondsLeft] = useState(25 * 60); 
   const [isActive, setIsActive] = useState(false);
   const [mode, setMode] = useState('FOCUS'); 
@@ -15,11 +18,20 @@ export default function App() {
   const [tasks, setTasks] = useState([]);
   const [newCardText, setNewCardText] = useState('');
 
-  useEffect(() => {
-    const minutesDisplay = Math.floor(secondsLeft / 60).toString().padStart(2, '0');
-    const secondsDisplay = (secondsLeft % 60).toString().padStart(2, '0');
-    document.title = `${minutesDisplay}:${secondsDisplay} - tomatoro`;
+  const currentHours = Math.floor(secondsLeft / 3600);
+  const currentMinutes = Math.floor((secondsLeft % 3600) / 60);
+  const currentSeconds = secondsLeft % 60;
 
+  const hoursStr = currentHours.toString().padStart(2, '0');
+  const minutesStr = currentMinutes.toString().padStart(2, '0');
+  const secondsStr = currentSeconds.toString().padStart(2, '0');
+
+  useEffect(() => {
+    const title = currentHours > 0 ? `${hoursStr}:${minutesStr}:${secondsStr}` : `${minutesStr}:${secondsStr}`;
+    document.title = `${title} - tomatoro`;
+  }, [secondsLeft]);
+  
+  useEffect(() => {
     let interval = null;
     if (isActive && secondsLeft > 0) {
       interval = setInterval(() => {
@@ -43,17 +55,9 @@ export default function App() {
   }, [isActive, secondsLeft, mode]);
 
   useEffect(() => {
-  const minutes = secondsLeft / 60;
-  setKnobRotation(minutes * 6);
-}, []);
-
-  const currentHours = Math.floor(secondsLeft / 3600);
-  const currentMinutes = Math.floor((secondsLeft % 3600) / 60);
-  const currentSeconds = secondsLeft % 60;
-
-  const hoursStr = currentHours.toString().padStart(2, '0');
-  const minutesStr = currentMinutes.toString().padStart(2, '0');
-  const secondsStr = currentSeconds.toString().padStart(2, '0');
+    const minutes = secondsLeft / 60;
+    setKnobRotation(minutes * 6);
+  }, []);
 
   const h1 = hoursStr[0];
   const h2 = hoursStr[1];
@@ -99,7 +103,7 @@ export default function App() {
     setKnobRotation(prev => {
       const nextRotation = prev + angleDiff;
       const minutes = Math.round(nextRotation / 6);
-      const clampedMinutes = Math.max(1, Math.min(180, minutes));
+      const clampedMinutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, minutes));
       setSecondsLeft(clampedMinutes * 60);
       return clampedMinutes * 6;
     });
