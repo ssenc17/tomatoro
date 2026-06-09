@@ -2,15 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import './App.css';
 
 export default function App() {
-  const MAX_SECONDS = 180 * 60;
-  const MIN_SECONDS = 1 * 60;
-
   const [secondsLeft, setSecondsLeft] = useState(25 * 60); 
   const [isActive, setIsActive] = useState(false);
   const [mode, setMode] = useState('FOCUS'); 
   const [rotationAngle, setRotationAngle] = useState(0);
 
-  const [knobRotation, setKnobRotation] = useState(0);
+  const [knobRotation, setKnobRotation] = useState(150);
   const isDragging = useRef(false);
   const lastAngle = useRef(0);
   const knobRef = useRef(null);
@@ -44,6 +41,11 @@ export default function App() {
     }
     return () => clearInterval(interval);
   }, [isActive, secondsLeft, mode]);
+
+  useEffect(() => {
+  const minutes = secondsLeft / 60;
+  setKnobRotation(minutes * 6);
+}, []);
 
   const currentHours = Math.floor(secondsLeft / 3600);
   const currentMinutes = Math.floor((secondsLeft % 3600) / 60);
@@ -94,16 +96,12 @@ export default function App() {
     if (angleDiff > 180) angleDiff -= 360;
     if (angleDiff < -180) angleDiff += 360;
 
-    setSecondsLeft((prev) => {
-      const rawDeltaSeconds = angleDiff * (300 / 90);
-      const targetSeconds = prev + Math.round(rawDeltaSeconds);
-
-      if (targetSeconds > MAX_SECONDS || targetSeconds < MIN_SECONDS) {
-        return prev;
-      }
-
-      setKnobRotation((prevRotation) => prevRotation + angleDiff);
-      return targetSeconds;
+    setKnobRotation(prev => {
+      const nextRotation = prev + angleDiff;
+      const minutes = Math.round(nextRotation / 6);
+      const clampedMinutes = Math.max(1, Math.min(180, minutes));
+      setSecondsLeft(clampedMinutes * 60);
+      return clampedMinutes * 6;
     });
 
     lastAngle.current = currentAngle;
@@ -113,16 +111,6 @@ export default function App() {
     isDragging.current = false;
     document.removeEventListener('mousemove', handleKnobMouseMove);
     document.removeEventListener('mouseup', handleKnobMouseUp);
-
-    setKnobRotation((prevRotation) => {
-      const snappedAngle = Math.round(prevRotation / 90) * 90;
-      
-      const snappedMinutes = snappedAngle / 18;
-      const targetSeconds = Math.max(60, Math.min(snappedMinutes * 60, 180 * 60));
-      setSecondsLeft(targetSeconds);
-      
-      return snappedAngle;
-    });
   };
 
   return (
@@ -150,25 +138,37 @@ export default function App() {
           </div>
 
           <div className="dial-knob-zone">
-            <div 
-              ref={knobRef}
-              className="dial-knob" 
-              style={{ transform: `rotate(${knobRotation}deg)`, transition: isDragging.current ? 'none' : 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}
+
+            <div className="dial-ticks">
+              {[...Array(12)].map((_, i) => (
+                <div key={i} className="tick" style={{transform: `rotate(${i * 30}deg)`}}
+                />
+              ))}
+            </div>
+
+            <div ref={knobRef} className="dial-knob"
+              style={{transform: `rotate(${knobRotation}deg)`, transition: isDragging.current ? 'none' : 'transform 0.08s linear'}}
               onMouseDown={handleKnobMouseDown}
-              title="Grab and spin to set time!"
             >
               <div className="dial-notch"></div>
             </div>
-            <span style={{ fontSize: '0.65rem', marginTop: '6px', opacity: 0.5, fontWeight: 'bold' }}>spin knob</span>
+
+            <span style={{fontSize: '0.65rem', marginTop: '6px', opacity: 0.5, fontWeight: 'bold'}}>
+              spin knob
+            </span>
+
           </div>
         </div>
 
         <div className="button-row">
           <button className="control-btn" onClick={() => { 
             setIsActive(false); 
-            setSecondsLeft(mode === 'FOCUS' ? 25 * 60 : 5 * 60); 
-            setRotationAngle(0); 
-            setKnobRotation(0); 
+            const resetMinutes =
+              mode === 'FOCUS'
+                ? 25
+                : 5;
+            setSecondsLeft(resetMinutes * 60);
+            setKnobRotation(resetMinutes * 6);
           }}>
             reset
           </button>
